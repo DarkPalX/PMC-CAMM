@@ -1,0 +1,216 @@
+<?php
+
+use App\Http\Controllers\AccessedAppController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\LogController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\RoleAccessRightController;
+use App\Http\Controllers\ShutdownApplicationController;
+use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\ScheduleController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
+
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+
+
+//Login Controller
+Route::get('/', [LoginController::class, 'index'])->name("login");
+Route::get('auth/forgot_password', [LoginController::class, 'forgot_password'])->name("auth.forgot_password");
+Route::post('auth/sendRequest', [LoginController::class, 'sendRequest'])->name("auth.sendRequest");
+Route::post('auth/login', [LoginController::class, 'login'])->name("auth.login");
+
+Route::get('logout', [LoginController::class, 'logout'])->name("logout");
+
+Route::middleware(['auth'])->group(function () {
+
+    Route::post('auth/updatePassword', [LoginController::class, 'updatePassword'])->name("auth.updatePassword");
+    Route::get('auth/change_password', [LoginController::class, 'change_password'])->name("auth.change_password");
+    Route::get('/dashboard', [HomeController::class, 'index'])->name("dashboard");
+    Route::get('employee/dashboard', [HomeController::class, 'employee_index'])->name("employee.dashboard");
+
+    Route::get('/maintenance/syncRoles', [MaintenanceController::class, 'syncRoles']);
+    // User Controller
+    Route::group(
+        ['prefix' => 'users'],
+        function () {
+            Route::get('/create', [UserController::class, 'create'])->name("users.create");
+            Route::get('/getUsers', [UserController::class, 'getUsers'])->name("users.getUsers");
+            Route::get('/getAllUsers', [UserController::class, 'getAllUsers'])->name("users.getAllUsers");
+            Route::post('/store', [UserController::class, 'store'])->name("users.store");
+            Route::get('/list', [UserController::class, 'index'])->name("users.index");
+            Route::get('/userList', [UserController::class, 'userList'])->name("users.userList");
+            Route::get('/employee-lookup', [UserController::class, 'employee_lookup'])->name("users.employee_lookup");
+            Route::post('/delete', [UserController::class, 'delete'])->name("users.delete");
+            Route::get('/edit/{id}', [UserController::class, 'edit'])->name("users.edit");
+            Route::post('/update', [UserController::class, 'update'])->name("users.update");
+            Route::post('/reset', [UserController::class, 'reset'])->name("users.reset");
+            Route::post('/activate', [UserController::class, 'activate'])->name("users.activate");
+            Route::post('/getAccessRights', [UserController::class, 'getAccessRights'])->name("users.getAccessRights");
+            Route::get('/getLoggedIn', [UserController::class, 'getLoggedIn'])->name("users.getLoggedIn");
+        }
+    );
+
+    // Announcement Controller
+    Route::group(
+        ['prefix' => 'announcements'],
+        function () {
+            Route::get('/create', [AnnouncementController::class, 'create'])->name("announcements.create");
+            Route::get('/getAnnouncements', [AnnouncementController::class, 'getAnnouncements'])->name("announcements.getAnnouncements");
+            Route::post('/store', [AnnouncementController::class, 'store'])->name("announcements.store");
+            Route::get('/list', [AnnouncementController::class, 'index'])->name("announcements.index");
+            Route::get('/edit/{id}', [AnnouncementController::class, 'edit'])->name("announcements.edit");
+            Route::post('/update', [AnnouncementController::class, 'update'])->name("announcements.update");
+            Route::post('/delete', [AnnouncementController::class, 'delete'])->name("announcements.delete");
+            Route::get('/recipients', [AnnouncementController::class, 'recipients'])->name("announcements.recipients");
+            Route::get('/getAnnouncementsPerUser', [AnnouncementController::class, 'getAnnouncementsPerUser'])->name("announcements.getAnnouncementsPerUser");
+            Route::post('/saveUserRead', [AnnouncementController::class, 'saveUserRead'])->name("announcements.saveUserRead");
+            
+        }
+    );
+
+    // Role Controller
+    Route::group(
+        ['prefix' => 'roles'],
+        function () {
+            Route::get('/create', [RoleController::class, 'create'])->name("roles.create");
+            Route::get('/getRoles', [RoleController::class, 'getRoles'])->name("roles.getRoles");
+            Route::post('/store', [RoleController::class, 'store'])->name("roles.store");
+            Route::get('/list', [RoleController::class, 'index'])->name("roles.index");
+            Route::get('/edit/{id}', [RoleController::class, 'edit'])->name("roles.edit");
+            Route::post('/update', [RoleController::class, 'update'])->name("roles.update");
+            Route::get('/rolesList', [RoleController::class, 'rolesList'])->name("roles.list");
+            Route::get('/rolesList_selected', [RoleController::class, 'rolesList_selected'])->name("roles.list_selected");
+        }
+    );
+
+    // Module Controller
+    Route::group(
+        ['prefix' => 'modules'],
+        function () {
+            Route::get('/create', [ModuleController::class, 'create'])->name("modules.create");
+            Route::get('/getModules', [ModuleController::class, 'getModules'])->name("modules.getModules");
+            Route::post('/store', [ModuleController::class, 'store'])->name("modules.store");
+            Route::get('/list', [ModuleController::class, 'index'])->name("modules.index");
+            Route::get('/edit/{id}', [ModuleController::class, 'edit'])->name("modules.edit");
+            Route::post('/update', [ModuleController::class, 'update'])->name("modules.update");
+            Route::get('/getModule_selected', [ModuleController::class, 'getModule_selected'])->name("modules.getModule_selected");
+            Route::get('/applicationsList', [ModuleController::class, 'applicationsList'])->name("modules.list");
+        }
+    );
+
+    // Permission Controller
+    Route::group(
+        ['prefix' => 'permissions'],
+        function () {
+            Route::get('/create', [PermissionController::class, 'create'])->name("permissions.create");
+            Route::get('/getPermissions', [PermissionController::class, 'getPermissions'])->name("permissions.getPermissions");
+            Route::post('/store', [PermissionController::class, 'store'])->name("permissions.store");
+            Route::get('/list', [PermissionController::class, 'index'])->name("permissions.index");
+            Route::get('/edit/{id}', [PermissionController::class, 'edit'])->name("permissions.edit");
+            Route::post('/update', [PermissionController::class, 'update'])->name("permissions.update");
+            Route::get('/modulesList', [PermissionController::class, 'modulesList'])->name("permissions.list");
+            Route::get('/getPermission_selected', [PermissionController::class, 'getPermission_selected'])->name("permissions.getPermission_selected");
+        }
+    );
+
+    // Log Controller
+    Route::group(
+        ['prefix' => 'report'],
+        function () {
+            Route::get('/logs', [LogController::class, 'index'])->name("report.logs");
+            Route::post('/getLogs', [LogController::class, 'getLogs'])->name("report.getLogs");
+            Route::get('/announcement', [AnnouncementController::class, 'report'])->name("report.announcement");
+            Route::post('/getAnnouncements', [AnnouncementController::class, 'getreport'])->name("report.getreport");
+        }
+    );
+
+    // Role Access Rights Controller
+    Route::group(
+        ['prefix' => 'roleaccessrights'],
+        function () {
+        Route::get('/index', [RoleAccessRightController::class, 'index'])->name("roleaccessrights.index");            
+            Route::post('/store', [RoleAccessRightController::class, 'store'])->name("roleaccessrights.store");
+            Route::post('/getAccessRights', [RoleAccessRightController::class, 'getAccessRights'])->name("roleaccessrights.getAccessRights");
+            
+        }
+    );
+
+    // Databases Controller
+    Route::group(
+        ['prefix' => 'databases'],
+        function () {
+        Route::get('/list', [DatabaseController::class, 'index'])->name("databases.index");
+        Route::post('/reindex', [DatabaseController::class, 'reindex'])->name("databases.reindex");
+        Route::post('/shrink', [DatabaseController::class, 'shrink'])->name("databases.shrink");
+        Route::post('/sync', [DatabaseController::class, 'sync'])->name("databases.sync");
+        Route::get('/clear/{id}', [DatabaseController::class, 'clear'])->name("databases.clear");
+        Route::get('/getApplications', [DatabaseController::class, 'getApplications'])->name("databases.getApplications");
+
+            
+        }
+    );    
+
+    // Shutdown Application Controller
+    Route::group(
+        ['prefix' => 'shutdownapplications'],
+        function () {
+            Route::get('/create', [ShutdownApplicationController::class, 'create'])->name("shutdownapplications.create");
+            Route::get('/getShutdownApplications', [ShutdownApplicationController::class, 'getShutdownApplications'])->name("shutdownapplications.getShutdownApplications");
+            Route::post('/store', [ShutdownApplicationController::class, 'store'])->name("shutdownapplications.store");
+            Route::get('/list', [ShutdownApplicationController::class, 'index'])->name("shutdownapplications.index");
+            Route::get('/edit/{id}', [ShutdownApplicationController::class, 'edit'])->name("shutdownapplications.edit");
+            Route::post('/update', [ShutdownApplicationController::class, 'update'])->name("shutdownapplications.update");
+            Route::post('/delete', [ShutdownApplicationController::class, 'delete'])->name("shutdownapplications.delete");
+        }
+    );
+
+    // Application Controller
+    Route::group(
+        ['prefix' => 'applications'],
+        function () {
+            Route::get('/list', [ApplicationController::class, 'index'])->name("applications.index");
+            Route::get('/create', [ApplicationController::class, 'create'])->name("applications.create");
+            Route::post('/store', [ApplicationController::class, 'store'])->name("applications.store");
+            Route::get('/edit/{id}', [ApplicationController::class, 'edit'])->name("applications.edit");
+            Route::post('/update', [ApplicationController::class, 'update'])->name("applications.update");
+            Route::get('/getApplications', [ApplicationController::class, 'getApplications'])->name("applications.getApplications");
+        }
+    );    
+
+    // Accessed Application Controller
+    Route::group(
+        ['prefix' => 'accessedapp'],
+        function () {
+            Route::post('/create', [AccessedAppController::class, 'create'])->name("accessedapp.create");
+            Route::post('/logoutUser', [AccessedAppController::class, 'logoutUser'])->name("accessedapp.logoutUser");
+        }
+    );
+     // Schedule Controller
+     Route::group(
+        ['prefix' => 'schedule'],
+        function () {
+            Route::post('/store', [ScheduleController::class, 'store'])->name("schedule.store");
+            Route::get('/getSchedule', [ScheduleController::class, 'getSchedule'])->name("schedule.getSchedule");
+        }
+    );
+});

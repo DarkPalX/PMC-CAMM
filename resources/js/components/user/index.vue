@@ -1,0 +1,365 @@
+<template>
+  <div class="container pd-x-0">
+    <div
+      class="
+        d-sm-flex
+        align-items-center
+        justify-content-between
+        mg-b-20 mg-lg-b-25 mg-xl-b-30
+      "
+    >
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb breadcrumb-style1 mg-b-5">
+            <li class="breadcrumb-item" aria-current="page">
+              <a :href="dashboard">CAMM</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Users</li>
+          </ol>
+        </nav>
+        <h4 class="mg-b-0 tx-spacing--1">Manage Users</h4>
+      </div>
+    </div>
+    <ConfirmDialog></ConfirmDialog>
+    <div class="row row-sm">
+      <!-- Start Pages -->
+
+      <div class="col-md-12">
+        <Toolbar class="mb-4">
+          <template #start>
+            <Button
+              label="Export"
+              icon="pi pi-download"
+              class="p-button-help p-button-sm mr-2"
+              @click="exportCSV($event)"
+            />
+            <Button
+              label="New"
+              icon="pi pi-plus"
+              class="p-button-success p-button-sm mr-2"
+              @click="addNew()"
+            />
+          </template>
+          <template #end>
+            <div class="search-form mg-r-10">
+              <input
+                name="search"
+                type="search"
+                id="search"
+                class="form-control"
+                placeholder="Search"
+                v-model="filters['global'].value"
+              />
+              <button class="btn filter" id="btnSearch">
+                <i data-feather="search"></i>
+              </button>
+            </div>
+          </template>
+        </Toolbar>
+        <div class="table-list mg-b-10">
+          <div class="table-responsive-lg">
+            <DataTable
+              ref="dt"
+              :value="userLists"
+              :paginator="true"
+              :rows="10"
+              stripedRows
+              removableSort
+              paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+              :rowsPerPageOptions="[10, 20, 50]"
+              responsiveLayout="scroll"
+              :loading="loading"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+              v-model:filters="filters"
+              filterDisplay="menu"
+              :globalFilterFields="['id', 'name', 'dept', 'status']"
+            >
+              <template #empty> No record found. </template>
+              <template #loading> Loading data. Please wait. </template>
+              <Column field="id" header="PMC-ID" :sortable="true"></Column>
+              <Column field="name" header="Full Name" :sortable="true"></Column>
+              <Column
+                field="dept"
+                header="Department"
+                :sortable="true"
+              ></Column>
+              <Column
+                field="approle_desc"
+                header="List of allowed applications and roles"
+              ></Column>
+              <Column
+                field="appRole"
+                header="List of allowed applications and roles"
+                hidden
+                :exportable="false"
+              ></Column>
+              <Column field="status" header="Status" hidden></Column>
+              <Column field="active" header="Status" :sortable="true" :exportable="false">
+                <template #body="slotProps">
+                    <span v-if="slotProps.data.active == '1'">Active</span>
+                    <span v-else style="color:red">Inactive</span>
+                </template>                
+              </Column>
+
+              <Column
+                :exportable="false"
+                style="min-width: 8rem"
+                header="Actions"
+              >
+                <template #body="slotProps">
+                    
+                    <span v-if="slotProps.data.active == '1'">
+                      
+                      <Button
+                        v-bind:title='editMsg'
+                        icon="pi pi-pencil"
+                        class="p-button-rounded p-button-success mr-2"
+                        @click="editUser(slotProps)"
+                      />
+
+                      <Button
+                        v-bind:title='activeMsg'
+                        icon="pi pi-user-plus"
+                        class="p-button-rounded p-button-warning"
+                        @click="activeUser(slotProps)"
+                        disabled
+                      />                      
+                      <span> &nbsp;</span>
+                      <Button
+                        v-bind:title='inactiveMsg'
+                        icon="pi pi-user-minus"
+                        class="p-button-rounded p-button-warning"
+                        @click="deleteUser(slotProps)"
+                      />                      
+                      <span> &nbsp;</span>
+                      <Button
+                        v-bind:title='resetMsg'
+                        icon="pi pi-refresh"
+                        class="p-button-rounded p-button-warning"
+                        @click="resetUser(slotProps)"
+                      />                      
+                      
+                    </span>
+
+
+                    <span v-else>
+
+                      <Button
+                        v-bind:title='editMsg'
+                        icon="pi pi-pencil"
+                        class="p-button-rounded p-button-success mr-2"
+                        @click="editUser(slotProps)"
+                        disabled
+                      />
+
+                      <Button
+                        v-bind:title='activeMsg'
+                        icon="pi pi-user-plus"
+                        class="p-button-rounded p-button-warning"
+                        @click="activeUser(slotProps)"                        
+                      />                              
+                      <span> &nbsp;</span>
+                      <Button
+                        v-bind:title='inactiveMsg'
+                        icon="pi pi-user-minus"
+                        class="p-button-rounded p-button-warning"
+                        @click="deleteUser(slotProps)"
+                        disabled
+                      />                      
+                      <span> &nbsp;</span>
+                      <Button
+                        v-bind:title='resetMsg'
+                        icon="pi pi-refresh"
+                        class="p-button-rounded p-button-warning"
+                        @click="resetUser(slotProps)"
+                        disabled
+                      />                      
+
+
+                    </span>
+
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </div>
+      </div>
+      <!-- End Pages -->
+    </div>
+  </div>
+  <toast
+    :breakpoints="{ '920px': { width: '100%', right: '0', left: '0' } }"
+  ></toast>
+</template>
+<script>
+import { FilterMatchMode, FilterOperator } from "primevue/api";
+// const env_Url = process.env.MIX_APP_URL;
+export default {
+  // props: ["users"],
+  data() {
+    return {
+      dashboard: this.$env_Url + "/dashboard",
+      filters: null,
+      userLists: [],
+      loading: true,
+      form: {
+        id: 0,
+      },
+      editMsg: "Edit User",
+      activeMsg: "Activate User",
+      inactiveMsg: "Deactivate User",
+      resetMsg: "Reset Password",
+    };
+  },
+  created() {
+    this.fetchAllUsers();
+    this.initFilters();
+  },
+  methods: {
+    initFilters() {
+      this.filters = {
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      };
+    },
+    
+    clearFilter() {
+      this.filters["global"].value = null;
+    },
+    
+    addNew() {
+      window.location.href = this.$env_Url + "/users/create";
+    },
+    
+    exportCSV() {
+      this.$refs.dt.exportCSV();
+    },
+    
+    editUser(data) {
+      window.location.href = this.$env_Url + "/users/edit/" + data.data.id;
+    },
+
+    activeUser(data) {
+      let src = data.data.id,
+        alt = data.data.id;
+      this.form.id = alt;
+
+      this.$confirm.require({
+        message: "Do you want to activate this record?",
+        header: "Activate Confirmation",
+        icon: "pi pi-info-circle",
+        acceptClass: "p-button-danger",
+        accept: async () => {
+          const res = await this.deleteRecord(
+            "post",
+           "/users/activate",
+            this.form
+          );
+          console.log(res.status);
+          if (res.status === 200) {
+            this.amessage();
+            // const index = this.userLists.findIndex(
+            //   (user) => user.id === this.form.id
+            // );
+            // if (~index) this.userLists.splice(index, 1);
+            // window.location.href = this.$env_Url + "/users/list";
+            this.fetchAllUsers();
+          } else {
+            this.ermessage();
+          }
+        },
+        reject: () => {
+          this.$toast.add({
+            severity: "error",
+            summary: "Cancelled",
+            detail: "You have cancelled the process",
+            life: 3000,
+          });
+        },
+      });
+    },
+
+    deleteUser(data) {
+      let src = data.data.id,
+        alt = data.data.id;
+      this.form.id = alt;
+
+      this.$confirm.require({
+        message: "Do you want to deactivate this record?",
+        header: "Deactivate Confirmation",
+        icon: "pi pi-info-circle",
+        acceptClass: "p-button-danger",
+        accept: async () => {
+          const res = await this.deleteRecord(
+            "post",
+            "/users/delete",
+            this.form
+          );
+          if (res.status === 200) {
+            this.imessage();
+            // const index = this.userLists.findIndex(
+            //   (user) => user.id === this.form.id
+            // );
+            // if (~index) this.userLists.splice(index, 1);
+            // window.location.href = this.$env_Url + "/users/list";
+            this.fetchAllUsers();
+          } else {
+            this.ermessage();
+          }
+        },
+        reject: () => {
+          this.$toast.add({
+            severity: "error",
+            summary: "Cancelled",
+            detail: "You have cancelled the process",
+            life: 3000,
+          });
+        },
+      });
+    },
+
+    resetUser(data) {
+      let src = data.data.id,
+        alt = data.data.id;
+      this.form.id = alt;
+
+      this.$confirm.require({
+        message: "Do you want to reset the password?",
+        header: "Reset Password Confirmation",
+        icon: "pi pi-info-circle",
+        acceptClass: "p-button-danger",
+        accept: async () => {
+          const res = await this.deleteRecord(
+            "post",
+           "/users/reset",
+            this.form
+          );
+          console.log(res.status);
+          if (res.status === 200) {
+            this.pmessage();
+            this.fetchAllUsers();
+          } else {
+            this.ermessage();
+          }
+        },
+        reject: () => {
+          this.$toast.add({
+            severity: "error",
+            summary: "Cancelled",
+            detail: "You have cancelled the process",
+            life: 3000,
+          });
+        },
+      });
+    },
+
+    exportCSV() {
+      this.$refs.dt.exportCSV("Users");
+    },
+    async fetchAllUsers() {
+      const res = await this.getDataFromDB("get", "/users/getAllUsers");
+      this.userLists = res.data;
+      this.loading = false;
+    },
+  },
+};
+</script>

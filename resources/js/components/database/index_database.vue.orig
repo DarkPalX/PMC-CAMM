@@ -1,0 +1,468 @@
+<template>
+  <div class="container pd-x-0">
+    <div
+      class="
+        d-sm-flex
+        align-items-center
+        justify-content-between
+        mg-b-20 mg-lg-b-25 mg-xl-b-30
+      "
+    >
+      <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb breadcrumb-style1 mg-b-5">
+            <li class="breadcrumb-item" aria-current="page">
+              <a :href="dashboard">CAMM</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">
+              Database Maintenance
+            </li>
+          </ol>
+        </nav>
+        <h4 class="mg-b-0 tx-spacing--1">Database Maintenance</h4>
+      </div>
+    </div>
+
+    <ConfirmDialog></ConfirmDialog>
+    <div class="row row-sm">
+      <!-- Start Pages -->
+
+      <div class="col-md-12">
+        <Toolbar class="mb-4">
+          <template #start>
+            <Button
+              label="Export"
+              icon="pi pi-upload"
+              class="p-button-help p-button-sm mr-2"
+              @click="exportCSV($event)"
+            />
+          </template>
+          <template #end>
+            <div class="search-form mg-r-10">
+              <input
+                name="search"
+                type="search"
+                id="search"
+                class="form-control"
+                placeholder="Search"
+                v-model="filters['global'].value"
+              />
+              <button class="btn filter" id="btnSearch">
+                <i data-feather="search"></i>
+              </button>
+            </div>
+          </template>
+        </Toolbar>
+        <div class="table-list mg-b-10">
+          <div class="table-responsive-lg">
+            <DataTable
+              ref="dt"
+              :value="databasetableLists"
+              :paginator="true"
+              :rows="10"
+              stripedRows
+              removableSort
+              paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+              :rowsPerPageOptions="[10, 20, 50]"
+              responsiveLayout="scroll"
+              :loading="loading1"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords}"
+              v-model:filters="filters"
+              filterDisplay="menu"
+              :globalFilterFields="[
+                'description',
+                'updated_at_reindex',
+                'updated_at_sync',
+                'log_size',
+                'syncDate',
+                'updated_at_shrink',
+              ]"
+            >
+              <template #empty> No record found. </template>
+              <template #loading> Loading data. Please wait. </template>
+
+              <Column
+                field="description"
+                header="Application"
+                :sortable="true"
+              ></Column>
+              <Column
+                field="updated_at_reindex"
+                header="Last Reindex Date/Time"
+                :sortable="true"
+              ></Column>
+
+              <Column
+                field="syncDate"
+                header="Last Sync Date/Time"
+                :sortable="true"
+              ></Column>
+              <Column
+                field="log_size"
+                header="Log Size"
+                :sortable="true"
+              ></Column>
+
+              <Column
+                field="updated_at_shrink"
+                header="Last Shrink Date/Time"
+                :sortable="true"
+              ></Column>              
+
+              <Column
+                :exportable="false"
+                style="min-width: 8rem"
+                header="Actions"
+              >
+                <template #body="slotProps">
+                  <Button
+                    v-bind:title="reindexMsg"
+                    icon="pi pi-pencil"
+                    class="p-button-rounded p-button-success mr-2"
+                    @click="reindexApplication(slotProps)"
+                  />
+
+                  <Button
+                    v-bind:title="syncMsg"
+                    icon="pi pi-sync"
+                    class="p-button-rounded p-button-success mr-2"
+                    @click="syncApplication(slotProps)"
+                  />
+
+                  <!-- <Button
+                    v-bind:title="clearMsg"
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-success mr-2"
+                    @click="clearApplication(slotProps)"
+                  />
+
+                  <Button
+<<<<<<< HEAD
+                    v-bind:title="schedule"
+                    icon="pi pi-calendar"
+                    class="p-button-rounded p-button-success mr-2"
+                    @click="setSchedule(slotProps)"
+                  /> -->
+=======
+                    v-bind:title="shrinkMsg"
+                    icon="pi pi-database"
+                    class="p-button-rounded p-button-success mr-2"
+                    @click="shrinkApplication(slotProps)"
+                  />
+
+>>>>>>> 71ee76ea046a4713b71ece737ebe83cf09b75554
+                </template>
+              </Column>
+            </DataTable>
+          </div>
+        </div>
+      </div>
+      <!-- End Pages -->
+    </div>
+  </div>
+
+  <toast
+    :breakpoints="{ '920px': { width: '100%', right: '0', left: '0' } }"
+  ></toast>
+  <Dialog
+    header="Set Schedule"
+    v-model:visible="displaySchedule"
+    :style="{ width: '50vw' }"
+    :modal="true"
+  >
+    <div>
+      <h5>Clear Logs</h5>
+      <div class="grid p-fluid" style="margin-bottom: 35px">
+        <div class="col-12 md:col-4">
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon">
+              <i class="pi pi-calendar"></i>
+            </span>
+            <InputText
+              placeholder="Input Days Parameter"
+              v-model="form.logDays"
+            />
+          </div>
+        </div>
+      </div>
+
+      <h5>Auto Sync Database</h5>
+      <div class="grid" style="margin-bottom: 5px">
+        <div class="col-12 md:col-12">
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon">D</span>
+            <InputText
+              type="time"
+              name="time"
+              id="time"
+              v-model="form.hrs"
+              :disabled="this.isNotDaily"
+            />
+            <span class="p-inputgroup-addon">
+              <RadioButton
+                name="rbd"
+                value="rbd"
+                v-model="rbdSched"
+                @change="selectrdb()"
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-bottom: 5px">
+        <div class="col-12 md:col-12">
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon">W</span>
+            <Dropdown
+              v-model="form.week_day"
+              :options="days"
+              optionLabel="name"
+              optionValue="code"
+              placeholder="Select a Day"
+              :disabled="isNotWeekly"
+            />
+            <span class="p-inputgroup-addon">
+              <RadioButton
+                name="rbw"
+                value="rbw"
+                v-model="rbdSched"
+                @change="selectrdb()"
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-bottom: 5px">
+        <div class="col-12 md:col-12">
+          <div class="p-inputgroup">
+            <span class="p-inputgroup-addon">M</span>
+            <Dropdown
+              v-model="form.month_date"
+              :options="dates"
+              optionLabel="name"
+              optionValue="code"
+              placeholder="Select a Date"
+              :disabled="isNotMonthly"
+            />
+            <span class="p-inputgroup-addon">
+              <RadioButton
+                name="rbm"
+                value="rbm"
+                id="rbm"
+                v-model="rbdSched"
+                @change="selectrdb()"
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <template #footer>
+      <Button
+        label="Cancel"
+        icon="pi pi-times"
+        @click="closeModal"
+        class="p-button-text"
+      />
+      <Button
+        label="Save"
+        icon="pi pi-check"
+        @click="createSchedule"
+        autofocus
+      />
+    </template>
+  </Dialog>
+</template>
+<script>
+import { FilterMatchMode, FilterOperator } from "primevue/api";
+export default {
+  props: ["databasetables"],
+  data() {
+    return {
+      dashboard: this.$env_Url + "/dashboard",
+      filters: null,
+      databasetableLists: this.databasetables,
+      form: {
+        id: 0,
+      },
+      reindexMsg: "Application Reindex",
+      syncMsg: "Application Sync",
+      clearMsg: "Clear Logs",
+<<<<<<< HEAD
+      schedule: "Set Schedule",
+      displaySchedule: false,
+      days: [
+        { name: "Monday", code: "Monday" },
+        { name: "Tuesday", code: "Tuesday" },
+        { name: "Wednesday", code: "Wednesday" },
+        { name: "Thursday", code: "Thursday" },
+        { name: "Friday", code: "Friday" },
+        { name: "Saturday", code: "Saturday" },
+        { name: "Sunday", code: "Sunday" },
+      ],
+      dates: [],
+      selectedDay: null,
+      rbdSched: "rbd",
+      isNotDaily: true,
+      isNotMonthly: true,
+      isNotWeekly: true,
+      form: {
+        logDays: 0,
+        isDaily: 0,
+        hrs: "",
+        isWeekly: 0,
+        week_day: "",
+        isMonthly: 0,
+        month_date: 0,
+        apps: "",
+      },
+      schedules: [],
+=======
+      shrinkMsg: "Application Database Shrink",
+>>>>>>> 71ee76ea046a4713b71ece737ebe83cf09b75554
+    };
+  },
+  created() {
+    this.initFilters();
+    this.loadDate();
+    this.fetchSchedule();
+  },
+  methods: {
+    initFilters() {
+      this.filters = {
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      };
+    },
+
+    clearFilter() {
+      this.filters["global"].value = null;
+    },
+
+    async reindexApplication(data) {
+      let src = data.data.id;
+      this.form.id = data.data.id;
+      const res = await this.submit("post", "/databases/reindex", this.form);
+      if (res.status == 200) {
+        this.reindexmessage();
+        this.fetchApplications();
+      } else {
+        this.singleermessage(res.data.error);
+      }
+    },
+
+    async shrinkApplication(data) {
+      let src = data.data.id;
+      this.form.id = data.data.id;
+      const res = await this.submit("post", "/databases/shrink", this.form);
+      if (res.status == 200) {
+        this.shrinkmessage();
+      } else {
+        this.singleermessage(res.data.error);
+      }
+    },
+
+
+    async syncApplication(data) {
+      let src = data.data.id;
+      this.form.id = data.data.id;
+      // window.location.href = this.$env_Url + "/databases/sync/" + alt;
+      const res = await this.submit("post", "/databases/sync", this.form);
+      if (res.status == 200) {
+        this.syncmessage();
+        this.fetchApplications();
+      } else {
+        this.singleermessage(res.data.error);
+      }
+    },
+
+    clearApplication(data) {
+      let src = data.data.id,
+        alt = data.data.id;
+      window.location.href = this.$env_Url + "/databases/clear/" + alt;
+      this.clearLogs();
+    },
+
+    exportCSV() {
+      this.$refs.dt.exportCSV();
+    },
+    async fetchApplications() {
+      const res = await this.callApi("get", "/databases/getApplications");
+      this.databasetableLists = res.data;
+    },
+    setSchedule(data) {
+      const schedule = this.schedules.filter((sched) => sched.application == data.data.description);
+      this.form.apps = data.data.description;
+      this.form.logDays = schedule[0].logDays;
+      this.form.isDaily = schedule[0].isDaily;
+      this.form.hrs = schedule[0].hrs;
+      this.form.isWeekly = schedule[0].isWeekly;
+      this.form.week_day = schedule[0].week_day;
+      this.form.isMonthly = schedule[0].isMonthly;
+      this.form.month_date = schedule[0].month_date;
+      this.selectrdb();
+      this.displaySchedule = true;
+    },
+    closeModal() {
+      this.displaySchedule = false;
+    },
+    selectrdb() {
+      this.isNotMonthly = true;
+      this.isNotWeekly = true;
+      this.isNotDaily = true;
+      if (this.rbdSched == "rbm") {
+        this.isNotMonthly = false;
+      } else if (this.rbdSched == "rbw") {
+        this.isNotWeekly = false;
+      } else {
+        this.isNotDaily = false;
+      }
+    },
+    loadDate() {
+      for (var i = 1; i <= 31; i++) {
+        this.dates.push({ name: i, code: i });
+      }
+    },
+    async createSchedule() {
+      if (this.rbdSched == "rbm") {
+        this.form.isMonthly = true;
+        this.form.isDaily = false;
+        this.form.isWeekly = false;
+        this.form.hrs = 0;
+        this.form.week_day = "";
+      } else if (this.rbdSched == "rbw") {
+        this.form.isWeekly = true;
+        this.form.isDaily = false;
+        this.form.isMonthly = false;
+        this.form.hrs = 0;
+        this.form.month_date = 0;
+      } else {
+        this.form.isDaily = true;
+        this.form.isWeekly = false;
+        this.form.isMonthly = false;
+        this.form.week_day = "";
+        this.form.month_date = 0;
+      }
+      const res = await this.submit("post", "/schedule/store", this.form, {
+        headers: {
+          "Content-Type":
+            "multipart/form-data; charset=utf-8; boundary=" +
+            Math.random().toString().substr(2),
+        },
+      });
+      if (res.status === 200) {
+        this.smessage();
+        // this.displaySchedule = false;
+        this.fetchSchedule();
+      } else {
+        this.ermessage(res.data.errors);
+      }
+    },
+    async fetchSchedule() {
+      const res = await this.callApi("get", "/schedule/getSchedule");
+      this.schedules = res.data;
+    },
+  },
+};
+</script>
